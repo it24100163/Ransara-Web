@@ -1,0 +1,50 @@
+[
+  {
+    "name": "RandomForest",
+    "mae": 2.239,
+    "rmse": 4.118,
+    "mape": 34.6,
+    "r2": 0.897,
+    "winner": true
+  },
+  {
+    "name": "XGBoost",
+    "mae": 2.224,
+    "rmse": 3.946,
+    "mape": 36.3,
+    "r2": 0.905,
+    "winner": false
+  },
+  {
+    "name": "LightGBM",
+    "mae": 2.257,
+    "rmse": 3.956,
+    "mape": 36.6,
+    "r2": 0.905,
+    "winner": false
+  },
+  {
+    "name": "LinearRegression",
+    "mae": 4.53,
+    "rmse": 7.432,
+    "mape": 121.6,
+    "r2": 0.664,
+    "winner": false
+  },
+  {
+    "name": "Prophet",
+    "mae": 197432.402,
+    "rmse": 229326.69,
+    "mape": 94.1,
+    "r2": -3.258,
+    "winner": false
+  },
+  {
+    "name": "SARIMA",
+    "mae": 249003.017,
+    "rmse": 273746.988,
+    "mape": 147.4,
+    "r2": -5.067,
+    "winner": false
+  }
+]

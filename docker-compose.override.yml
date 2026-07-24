@@ -1,0 +1,25 @@
+# docker-compose.override.yml
+# ─────────────────────────────────────────────────────────────────────────────
+# Development overrides — automatically applied when running `docker compose up`
+# For production use: docker compose -f docker-compose.yml up
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  # ── PostgreSQL: expose port to host for local DB tools in dev ────────────────
+  db:
+    ports:
+      - "5432:5432"
+
+  # ── Backend: live source mount enables hot-reload in development ─────────────
+  backend:
+    volumes:
+      - ./backend:/app
+      - ./pictures:/app/pictures
+      - ./data:/data
+      - ./model_accuracy:/model_accuracy
+
+  # ── Frontend: live source mount for Vite HMR ─────────────────────────────────
+  frontend:
+    command: npm run dev -- --host 0.0.0.0
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules

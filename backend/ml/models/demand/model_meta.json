@@ -1,0 +1,61 @@
+{
+  "best_model": "RandomForest",
+  "composite_score": 0.0003,
+  "metrics": {
+    "MAE": 2.2386,
+    "RMSE": 4.1177,
+    "MAPE%": 34.57,
+    "WAPE%": 20.07,
+    "R2": 0.897
+  },
+  "ranking": [
+    {
+      "model": "RandomForest",
+      "composite_score": 0.000281520858516159,
+      "MAE": 2.2386,
+      "RMSE": 4.1177,
+      "MAPE%": 34.57,
+      "R2": 0.897
+    },
+    {
+      "model": "XGBoost",
+      "composite_score": 0.006165839829907874,
+      "MAE": 2.2238,
+      "RMSE": 3.9463,
+      "MAPE%": 36.31,
+      "R2": 0.9054
+    },
+    {
+      "model": "LightGBM",
+      "composite_score": 0.007139364246999442,
+      "MAE": 2.2575,
+      "RMSE": 3.9558,
+      "MAPE%": 36.58,
+      "R2": 0.9049
+    },
+    {
+      "model": "LinearRegression",
+      "composite_score": 0.3164343897058941,
+      "MAE": 4.5305,
+      "RMSE": 7.4318,
+      "MAPE%": 121.59,
+      "R2": 0.6645
+    },
+    {
+      "model": "Prophet",
+      "composite_score": 0.6855609830891946,
+      "MAE": 197432.4017,
+      "RMSE": 229326.6899,
+      "MAPE%": 94.13,
+      "R2": -3.2581
+    },
+    {
+      "model": "SARIMA",
+      "composite_score": 1.0,
+      "MAE": 249003.0171,
+      "RMSE": 273746.9876,
+      "MAPE%": 147.45,
+      "R2": -5.0675
+    }
+  ]
+}
