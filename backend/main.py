@@ -57,13 +57,28 @@ if os.path.exists("/app/payment_slips"):
     app.mount("/payment-slips", StaticFiles(directory="/app/payment_slips"), name="payment_slips")
 
 # --- CORS Middleware ---
-_frontend_url = os.environ.get("FRONTEND_PUBLIC_URL", "").rstrip("/")
+_frontend_url = os.environ.get("FRONTEND_PUBLIC_URL", "").strip().rstrip("/")
+
 _allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://ransara-web.netlify.app",
 ]
+
 if _frontend_url and _frontend_url not in _allowed_origins:
     _allowed_origins.append(_frontend_url)
+
+print(f"[CORS] Allowed origins: {_allowed_origins}")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.add_middleware(
     CORSMiddleware,
