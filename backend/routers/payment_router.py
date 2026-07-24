@@ -40,9 +40,12 @@ router = APIRouter(prefix="/payment", tags=["payment"])
 # ── Config ─────────────────────────────────────────────────────────────────────
 # SECURITY: Use backend-only env vars, NOT frontend VITE_ vars
 PAYHERE_MERCHANT_ID = os.environ.get("PAYHERE_MERCHANT_ID", "").strip()
-PAYHERE_SECRET      = os.environ.get("PAYHERE_MERCHANT_SECRET", "").strip()
-if not PAYHERE_MERCHANT_ID or not PAYHERE_SECRET:
-    raise RuntimeError("PayHere merchant credentials not set. Set PAYHERE_MERCHANT_ID and PAYHERE_MERCHANT_SECRET in .env")
+PAYHERE_SECRET = os.environ.get("PAYHERE_MERCHANT_SECRET", "").strip()
+
+PAYHERE_ENABLED = bool(PAYHERE_MERCHANT_ID and PAYHERE_SECRET)
+
+if not PAYHERE_ENABLED:
+    print("WARNING: PayHere credentials not configured. Payment routes disabled.")
 # HMAC-SHA256 key — re-uses the JWT secret so there's no extra secret to manage
 HMAC_KEY            = os.environ.get("JWT_SECRET_KEY", "").encode()
 _payhere_sandbox_env = os.environ.get("PAYHERE_SANDBOX", "true").strip().lower()
