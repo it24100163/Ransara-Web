@@ -173,19 +173,49 @@ def seed_admin():
             .first()
         )
 
-        if existing_admin:
-            print(
-                f"[SEED] Admin account already exists: "
-                f"{admin_email}"
-            )
-            return
-
         password_context = CryptContext(
             schemes=["bcrypt"],
             deprecated="auto",
         )
 
         admin_password = os.getenv("ADMIN_PASSWORD")
+
+        # Keep the configured admin account usable after every deployment.
+        # Previously, an existing row was skipped completely. That meant an old
+        # customer role or an old password in the persistent production database
+        # could permanently block admin login.
+        if existing_admin:
+            changed = False
+
+            if existing_admin.role != "admin":
+                existing_admin.role = "admin"
+                changed = True
+
+            if not existing_admin.is_active:
+                existing_admin.is_active = True
+                changed = True
+
+            if admin_password and not password_context.verify(
+                admin_password,
+                existing_admin.password_hash,
+            ):
+                existing_admin.password_hash = password_context.hash(
+                    admin_password
+                )
+                changed = True
+
+            if changed:
+                db.commit()
+                print(
+                    f"[SEED] Admin account repaired/updated: "
+                    f"{admin_email}"
+                )
+            else:
+                print(
+                    f"[SEED] Admin account already valid: "
+                    f"{admin_email}"
+                )
+            return
 
         if not admin_password:
             import secrets
