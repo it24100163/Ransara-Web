@@ -6,16 +6,44 @@ from schemas.inventory import ProductCreate, KeywordRequest, StockBatchCreate, S
 from pydantic import BaseModel
 import uuid
 import os
+import cloudinary
+import cloudinary.uploader
 from sqlalchemy import func
 from models.feedback import Feedback
 from models.feedback_product import FeedbackProduct
 from routers.auth_router import get_current_user, require_admin
 from models.user import User
 
+def get_cloudinary_public_id(image_url: str):
+    if not image_url or "res.cloudinary.com" not in image_url:
+        return None
+
+    try:
+        upload_part = image_url.split("/upload/")[1]
+        parts = upload_part.split("/")
+
+        if parts[0].startswith("v") and parts[0][1:].isdigit():
+            parts = parts[1:]
+
+        public_id_with_extension = "/".join(parts)
+        public_id = os.path.splitext(public_id_with_extension)[0]
+
+        return public_id
+
+    except Exception:
+        return None
+
 class CategoryCreate(BaseModel):
     name: str
     description: str = None
     discount_percentage: float = 0.0
+
+    cloudinary.config(
+        cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
+        api_key=os.environ.get("CLOUDINARY_API_KEY"),
+        api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
+        secure=True
+    )
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 
@@ -263,37 +291,62 @@ async def upload_image(
     current_user: User = Depends(get_current_user)
 ):
     if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can upload images")
+        raise HTTPException(
+            status_code=403,
+            detail="Only admins can upload images"
+        )
 
-    ALLOWED_MIME_TYPES = {
-        "image/jpeg": ".jpg",
-        "image/png": ".png",
-        "image/gif": ".gif"
+    allowed_mime_types = {
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif"
     }
-    MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
-    if file.content_type not in ALLOWED_MIME_TYPES:
-        raise HTTPException(status_code=400, detail="Image must be a JPEG, PNG, or GIF")
 
-    ext = ALLOWED_MIME_TYPES[file.content_type]
-    os.makedirs("/app/pictures", exist_ok=True)
-    file_name = f"{uuid.uuid4()}{ext}"
-    file_path = f"/app/pictures/{file_name}"
+    if file.content_type not in allowed_mime_types:
+        raise HTTPException(
+            status_code=400,
+            detail="Image must be JPEG, PNG, WEBP, or GIF"
+        )
 
-    # Stream in chunks to prevent memory exhaustion from large uploads
-    file_size = 0
-    with open(file_path, "wb") as buffer:
-        while chunk := await file.read(1024 * 1024):  # 1 MB chunks
-            file_size += len(chunk)
-            if file_size > MAX_IMAGE_SIZE_BYTES:
-                buffer.close()
-                os.remove(file_path)
-                raise HTTPException(status_code=400, detail="Image must not exceed 5 MB")
-            buffer.write(chunk)
+    file_content = await file.read()
 
-    # Use BACKEND_PUBLIC_URL so image links work in Docker / production deployments
-    backend_url = os.environ.get("BACKEND_PUBLIC_URL", "http://localhost:8000").rstrip("/")
-    return {"image_url": f"{backend_url}/pictures/{file_name}"}
+    max_image_size = 5 * 1024 * 1024
 
+    if len(file_content) > max_image_size:
+        raise HTTPException(
+            status_code=400,
+            detail="Image must not exceed 5 MB"
+        )
+
+    try:
+        upload_result = cloudinary.uploader.upload(
+            file_content,
+            folder="ransara-products",
+            resource_type="image",
+            transformation=[
+                {
+                    "width": 1200,
+                    "height": 1200,
+                    "crop": "limit",
+                    "quality": "auto",
+                    "fetch_format": "auto"
+                }
+            ]
+        )
+
+        return {
+            "image_url": upload_result["secure_url"],
+            "public_id": upload_result["public_id"]
+        }
+
+    except Exception as error:
+        print(f"Cloudinary upload error: {error}")
+
+        raise HTTPException(
+            status_code=500,
+            detail="Image upload failed"
+        )
 @router.put("/products/{product_id}")
 def update_product(
     product_id: int,
@@ -307,7 +360,23 @@ def update_product(
 
     db_product.product_name = product.product_name
     db_product.description = product.description
-    db_product.image_url = product.image_url
+    old_image_url = db_product.image_url
+    new_image_url = product.image_url
+
+    if (
+        new_image_url
+        and old_image_url
+        and new_image_url != old_image_url
+   ):
+        old_public_id = get_cloudinary_public_id(old_image_url)
+
+        if old_public_id:
+            try:
+                cloudinary.uploader.destroy(old_public_id)
+            except Exception as error:
+                print(f"Could not delete old Cloudinary image: {error}")
+
+    db_product.image_url = new_image_url
     db_product.unit_of_measure = product.unit_of_measure
     db_product.keywords = product.keywords
     db_product.supplier_id = product.supplier_id
@@ -342,6 +411,15 @@ def delete_product(
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+
+    public_id = get_cloudinary_public_id(product.image_url)
+
+    if public_id:
+        try:
+            cloudinary.uploader.destroy(public_id)
+        except Exception as error:
+            print(f"Could not delete Cloudinary image: {error}")
+
     db.delete(product)
     db.commit()
     return {"message": "Product deleted"}
