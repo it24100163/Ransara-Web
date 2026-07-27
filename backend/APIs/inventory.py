@@ -79,26 +79,11 @@ def generate_keywords(request: KeywordRequest, user_id: int = Depends(get_curren
             formatted_keywords.append(spaced_kw)
             
         return {"keywords": formatted_keywords}
-        
     except Exception as e:
         print(f"AI Generation Error: {str(e)}") # This will print the actual error in your Docker terminal
         raise HTTPException(status_code=500, detail="Failed to parse AI response. Please try again.")
     
     
-# --- Image Upload ---
-@router.post("/upload-image")
-def upload_image(file: UploadFile = File(...), user_id: int = Depends(get_current_user)):
-    os.makedirs("static/uploads", exist_ok=True)
-    file_extension = file.filename.split(".")[-1]
-    new_filename = f"{uuid.uuid4().hex}.{file_extension}"
-    file_location = f"static/uploads/{new_filename}"
-
-    with open(file_location, "wb+") as file_object:
-        shutil.copyfileobj(file.file, file_object)
-
-    return {"image_url": f"http://localhost:8000/{file_location}"}
-
-
 # --- Categories ---
 @router.get("/categories", response_model=List[CategoryResponse])
 def get_categories(db: Session = Depends(get_db)):
