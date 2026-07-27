@@ -33,17 +33,21 @@ def get_cloudinary_public_id(image_url: str):
     except Exception:
         return None
 
-class CategoryCreate(BaseModel):
-    name: str
-    description: str = None
-    discount_percentage: float = 0.0
-
-    cloudinary.config(
+cloudinary.config(
         cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
         api_key=os.environ.get("CLOUDINARY_API_KEY"),
         api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
         secure=True
     )
+
+    
+
+class CategoryCreate(BaseModel):
+    name: str
+    description: str = None
+    discount_percentage: float = 0.0
+
+    
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 
@@ -335,17 +339,19 @@ async def upload_image(
             ]
         )
 
+        print("UPLOAD RESULT:", upload_result)
+
         return {
             "image_url": upload_result["secure_url"],
             "public_id": upload_result["public_id"]
         }
 
     except Exception as error:
-        print(f"Cloudinary upload error: {error}")
+        print("CLOUDINARY ERROR:", repr(error))
 
         raise HTTPException(
             status_code=500,
-            detail="Image upload failed"
+            detail=str(error)
         )
 @router.put("/products/{product_id}")
 def update_product(
