@@ -19,3 +19,4 @@ numpy
 scipy
 joblib
 slowapi
+cloudinary==1.44.1
